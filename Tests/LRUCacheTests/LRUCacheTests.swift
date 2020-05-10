@@ -50,9 +50,11 @@ final class LRUCacheTests: XCTestCase {
         XCTAssertEqual(cache.keys, ["a"])
         XCTAssertEqual(cache.values, [1])
         XCTAssertEqual(cache["a"], 1)
+        
         cache["b"] = 2 // should be evicted later
         XCTAssertEqual(cache.keys, ["b", "a"])
         XCTAssertEqual(cache.values, [2, 1])
+        
         cache["c"] = 3
         
         cache["d"] = 4
@@ -62,18 +64,6 @@ final class LRUCacheTests: XCTestCase {
         XCTAssertEqual(cache["b"], nil)
         XCTAssertEqual(cache["c"], 3)
         XCTAssertEqual(cache["d"], 4)
-    }
-
-    func testMaxCountWithMaxCount0() {
-        var cache = LRUCache<String, Int>(maxCount:0)
-        cache["a"] = 1
-        cache["b"] = 2
-        cache["c"] = 3
-        XCTAssertEqual(cache.keys, [])
-        XCTAssertEqual(cache.values, [])
-        XCTAssertEqual(cache["a"], nil)
-        XCTAssertEqual(cache["b"], nil)
-        XCTAssertEqual(cache["c"], nil)
     }
     
     static var allTests = [
