@@ -21,10 +21,14 @@ final class LRUCacheTests: XCTestCase {
 
     func testValueOrdering() {
         var cache = LRUCache<String, Int>(maxCount:3)
-        cache["derp"] = 1
-        XCTAssertEqual(cache.keys, ["derp"])
-        XCTAssertEqual(cache.values, [1])
-        XCTAssertEqual(cache["derp"], 1)
+        cache["a"] = 1
+        cache["b"] = 2
+        cache["c"] = 3
+        XCTAssertEqual(cache.keys, ["c", "b", "a"])
+        XCTAssertEqual(cache.values, [3, 2, 1])
+        XCTAssertEqual(cache["a"], 1)
+        XCTAssertEqual(cache["b"], 2)
+        XCTAssertEqual(cache["c"], 3)
     }
 
     static var allTests = [
