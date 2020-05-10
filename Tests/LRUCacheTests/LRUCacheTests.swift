@@ -31,6 +31,18 @@ final class LRUCacheTests: XCTestCase {
         XCTAssertEqual(cache["c"], 3)
     }
 
+    func testOrderedEviction() {
+        var cache = LRUCache<String, Int>(maxCount:2)
+        cache["a"] = 1
+        cache["b"] = 2
+        cache["c"] = 3
+        XCTAssertEqual(cache.keys, ["c", "b"])
+        XCTAssertEqual(cache.values, [3, 2])
+        XCTAssertEqual(cache["a"], nil)
+        XCTAssertEqual(cache["b"], 2)
+        XCTAssertEqual(cache["c"], 3)
+    }
+
     static var allTests = [
         ("testInitialization", testInitialization),
     ]
