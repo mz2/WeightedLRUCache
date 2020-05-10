@@ -31,18 +31,51 @@ final class LRUCacheTests: XCTestCase {
         XCTAssertEqual(cache["c"], 3)
     }
 
-    func testOrderedEviction() {
+    func testOrderedEvictionWithMaxCount2A() {
         var cache = LRUCache<String, Int>(maxCount:2)
         cache["a"] = 1
         cache["b"] = 2
         cache["c"] = 3
         XCTAssertEqual(cache.keys, ["c", "b"])
         XCTAssertEqual(cache.values, [3, 2])
-        XCTAssertEqual(cache["a"], nil)
+        XCTAssertEqual(cache["a"], nil) // should no longer be there
+        XCTAssertEqual(cache["d"], nil) // non-existent key that never was
         XCTAssertEqual(cache["b"], 2)
         XCTAssertEqual(cache["c"], 3)
     }
+    
+    func testMaxCountWithMaxCount2B() {
+        var cache = LRUCache<String, Int>(maxCount:2)
+        cache["a"] = 1 // should be evicted later
+        XCTAssertEqual(cache.keys, ["a"])
+        XCTAssertEqual(cache.values, [1])
+        XCTAssertEqual(cache["a"], 1)
+        cache["b"] = 2 // should be evicted later
+        XCTAssertEqual(cache.keys, ["b", "a"])
+        XCTAssertEqual(cache.values, [2, 1])
+        cache["c"] = 3
+        
+        cache["d"] = 4
+        XCTAssertEqual(cache.keys, ["d", "c"])
+        XCTAssertEqual(cache.values, [4, 3])
+        XCTAssertEqual(cache["a"], nil)
+        XCTAssertEqual(cache["b"], nil)
+        XCTAssertEqual(cache["c"], 3)
+        XCTAssertEqual(cache["d"], 4)
+    }
 
+    func testMaxCountWithMaxCount0() {
+        var cache = LRUCache<String, Int>(maxCount:0)
+        cache["a"] = 1
+        cache["b"] = 2
+        cache["c"] = 3
+        XCTAssertEqual(cache.keys, [])
+        XCTAssertEqual(cache.values, [])
+        XCTAssertEqual(cache["a"], nil)
+        XCTAssertEqual(cache["b"], nil)
+        XCTAssertEqual(cache["c"], nil)
+    }
+    
     static var allTests = [
         ("testInitialization", testInitialization),
     ]

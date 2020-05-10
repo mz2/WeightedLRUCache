@@ -6,10 +6,10 @@
 //  Copyright © 2020 Markus & Matias Piipari. All rights reserved.
 //
 
-struct LRUCache<K: Hashable, V> {
-    private class LRUNode<K: Hashable, V>: CustomStringConvertible, Sequence {
+struct LRUCache<K: Hashable, V>: CustomStringConvertible {
+    private class LRUNode<K: Hashable, V>: CustomStringConvertible, Sequence, Equatable, Hashable {
         let key: K
-        let value: V
+        var value: V
         var next: LRUNode<K, V>? = nil
         var prev: LRUNode<K, V>? = nil
 
@@ -62,6 +62,14 @@ struct LRUCache<K: Hashable, V> {
                 return currentlyCurrent
             }
         }
+
+        static func == (lhs: LRUNode<K, V>, rhs: LRUNode<K, V>) -> Bool {
+            return lhs.key == rhs.key
+        }
+
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(self.key)
+        }
     }
 
     public let maxCount: Int
@@ -95,8 +103,14 @@ struct LRUCache<K: Hashable, V> {
             _ = self.refer(key: key, newValue: newValue)
         }
     }
+
+    var description: String {
+        self.listHead?.compactMap({
+            $0.description
+        }).joined(separator: "->") ?? "<LRUCache<K:\(K.Type.self), V:\(V.Type.self)>"
+    }
     
-    mutating private func setHead(_ newHead: LRUNode<K, V>) -> LRUNode<K, V> {
+    mutating private func prependHead(_ newHead: LRUNode<K, V>) -> LRUNode<K, V> {
         if let listHead = self.listHead {
             self.listHead = listHead.pushInFront(node: newHead)
             if self.listTail == nil {
@@ -105,20 +119,30 @@ struct LRUCache<K: Hashable, V> {
         } else {
             self.listHead = newHead
         }
-        self.map[newHead.key] = newHead
+        map[newHead.key] = newHead
         return newHead
     }
 
     mutating private func refer(key: K, newValue: V? = nil) -> V? {
-        // if node is found:
-        // - drop it from its current location and put it in front of the list.
-        // - replace the map entry with a reference to the newly created list head.
         if let foundNode = map[key] {
-            // drop current list node for (K, V)
-            foundNode.drop()
-            
-            // insert (K, V) in front of list and replace map reference to (K, V)
-            return self.setHead(LRUNode(key: key, value: foundNode.value)).value
+            // if the found node is already at the head position
+            if let listHead = listHead, listHead.key == key {
+                if let newValue = newValue { // ... and we were called to set a value, then set the value before returning.
+                    listHead.value = newValue
+                }
+                return listHead.value
+            }
+            // if node is found from a non-head position:
+            // - drop it from its current location and put it in front of the list.
+            // - replace the map entry with a reference to the newly created list head.
+            else {
+                // drop current list node for (K, V)
+                foundNode.drop()
+                map[key] = nil // this is reinstated below in setHead
+                
+                // insert (K, V) in front of list and replace map reference to (K, V)
+                return prependHead(LRUNode(key: key, value: foundNode.value)).value
+            }
         }
         // if node is not found and we're being called to set a value
         // - if cache is full when node is not found, pop tail and update tail reference to be the prev node.
@@ -129,7 +153,7 @@ struct LRUCache<K: Hashable, V> {
                 listTail = popResult.prev
                 map[popResult.popped.key] = nil
             }
-            return setHead(LRUNode(key: key, value: value)).value
+            return prependHead(LRUNode(key: key, value: value)).value
         }
         else {
             return nil
