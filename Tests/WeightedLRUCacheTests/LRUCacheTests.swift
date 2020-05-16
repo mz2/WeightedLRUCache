@@ -98,7 +98,24 @@ final class WeightedLRUCacheTests: XCTestCase {
         XCTAssertEqual(cache["b"], 5) // still there.
         XCTAssertEqual(cache["c"], 1) // still there.
         XCTAssertEqual(cache.values, [1, 5])
-     }
+    }
+
+    func testWeightedValue() {
+        var evictionCount =  0
+        var cache = WeightedLRUCache<String, WeightedValue<String>>(maxCount: .max, maxWeight: 10) { _, _ in
+            evictionCount += 1
+        }
+        cache["a"] = WeightedValue<String>(weight: 5, value: "foo") // this will be dropped.
+        cache["b"] = WeightedValue<String>(weight: 5, value: "bar") // this will be dropped.
+        cache["c"] = WeightedValue<String>(weight: 1, value: "baz") // this will be dropped.
+        XCTAssertEqual(evictionCount, 1)
+        XCTAssertEqual(cache.totalWeight, 6)
+        let evictedValue = cache["a"]
+        XCTAssert(evictedValue == nil) // no longer there.
+        XCTAssertEqual(cache["b"]!.value, "bar") // still there.
+        XCTAssertEqual(cache["c"]!.value, "baz") // still there.
+        XCTAssertEqual(cache.values.map { $0.value }, ["baz", "bar"])
+    }
     
     static var allTests = [
         ("testInitialization", testInitialization),
