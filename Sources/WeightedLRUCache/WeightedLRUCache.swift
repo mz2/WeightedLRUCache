@@ -1,5 +1,5 @@
 //
-//  LRUCache.swift
+//  WeightedLRUCache.swift
 //  Bento
 //
 //  Created by Matias Piipari on 09/05/2020.
@@ -72,7 +72,7 @@ private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequen
 }
 
 
-struct LRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
+struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
     public let maxCount: Int
     public let maxWeight: UInt
     private(set) public var totalWeight: UInt = 0
@@ -91,7 +91,7 @@ struct LRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
         } ?? []
     }
 
-    typealias CacheEvictionCallback = (_ key: K, _ value: V) -> Void
+    public typealias CacheEvictionCallback = (_ key: K, _ value: V) -> Void
     
     private var map: Dictionary<K, LRUNode<K, V>> = [:]
     private var listHead: LRUNode<K, V>?
@@ -121,7 +121,7 @@ struct LRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
     var description: String {
         self.listHead?.compactMap({
             $0.description
-        }).joined(separator: "->") ?? "<LRUCache<K:\(K.Type.self), V:\(V.Type.self)>"
+        }).joined(separator: "->") ?? "<WeightedLRUCache<K:\(K.Type.self), V:\(V.Type.self)>"
     }
     
     mutating private func prependHead(_ newHead: LRUNode<K, V>) -> LRUNode<K, V> {
@@ -142,17 +142,25 @@ struct LRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
         case getValue
     }
     
+    private mutating func dropExcessWeight() {
+        while totalWeight > maxWeight, let listTail = self.listTail {
+            let (popped, prev) = listTail.pop()
+            self.listTail = prev
+            map[popped.key] = nil
+            precondition(popped.value.weight >= 0, "Expecting a non-negative value weight")
+            totalWeight -= popped.value.weight
+            didEvict?(popped.key, popped.value)
+        }
+    }
+    
     mutating private func referToSet(value newValue: V, forKey key: K) {
         defer {
             totalWeight += newValue.weight
-            if maxWeight > 0 { // if max weight constraint is set, drop values until max weight constraint is met.
-                while totalWeight > maxWeight, let listTail = self.listTail {
-                    let (popped, prev) = listTail.pop()
-                    self.listTail = prev
-                    map[popped.key] = nil
-                    precondition(popped.value.weight >= 0, "Expecting a non-negative value weight")
-                    totalWeight -= popped.value.weight
-                }
+
+            // if max weight constraint is set,
+            // drop values until max weight constraint is met.
+            if maxWeight > 0 {
+                dropExcessWeight()
             }
         }
         if let foundNode = map[key] {
@@ -174,7 +182,7 @@ struct LRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
                 return
             }
         }
-        // if node is not found and we're being called to set a value
+        // if pre-existing node with key is not found
         // - if cache is full when node is not found, pop tail and update tail reference to be the prev node.
         // - regardless, set a map entry with a reference to the newly created list head.
     
@@ -182,6 +190,7 @@ struct LRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
         if map.count == maxCount, let popResult = listTail?.pop() {
             listTail = popResult.prev
             map[popResult.popped.key] = nil
+            didEvict?(popResult.popped.key, popResult.popped.value)
         }
         _ = prependHead(LRUNode(key: key, value: newValue))
     }

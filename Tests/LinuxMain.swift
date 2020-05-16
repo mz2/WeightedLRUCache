@@ -1,7 +1,7 @@
 import XCTest
 
-import LRUCacheTests
+import WeightedLRUCacheTests
 
 var tests = [XCTestCaseEntry]()
-tests += LRUCacheTests.allTests()
+tests += WeightedLRUCacheTests.allTests()
 XCTMain(tests)
