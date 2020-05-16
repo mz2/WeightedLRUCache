@@ -4,7 +4,7 @@ An LRU cache in Swift, with optional support for weighted values such that value
 
 ## Installation
 
-Add WeightedLRUCache to your Swift package by adding the following to your Package.swift file in the dependencies array:
+Add WeightedLRUCache to your Swift package as a dependency by adding the following to your Package.swift file in the dependencies array:
 
 ```swift
 .package(url: "https://github.com/mz2/WeightedLRUCache.git", from: "<version>")
