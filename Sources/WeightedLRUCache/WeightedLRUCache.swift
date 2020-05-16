@@ -6,7 +6,7 @@
 //  Copyright © 2020 Markus & Matias Piipari. All rights reserved.
 //
 
-private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequence, Equatable, Hashable {
+private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequence, Hashable {
     let key: K
     var value: V
     var next: LRUNode<K, V>? = nil

@@ -116,6 +116,14 @@ final class WeightedLRUCacheTests: XCTestCase {
         XCTAssertEqual(cache["c"]!.value, "baz") // still there.
         XCTAssertEqual(cache.values.map { $0.value }, ["baz", "bar"])
     }
+
+    func testDescription() {
+        var cache = WeightedLRUCache<String, Int>(maxCount: .max, maxWeight: 10)
+        cache["a"] = 5
+        cache["b"] = 3
+        cache["c"] = 1
+        XCTAssertEqual(cache.description, "<LRUNode<String.Type, Int.Type, key: c, value: 1>-><LRUNode<String.Type, Int.Type, key: b, value: 3>-><LRUNode<String.Type, Int.Type, key: a, value: 5>")
+    }
     
     static var allTests = [
         ("testInitialization", testInitialization),
