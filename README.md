@@ -26,11 +26,7 @@ var cache = WeightedLRUCache<String, WeightedValue<String>>(maxCount: .max, maxW
 }
 ```
 
-Note above the use of `Int.max` as the max count -- here only a weight constraint was given (both item count and total weight can be constrained).
-
-A cache created as above behaves such that...
-- the first inserted value (with key `"a"`) will be dropped after the next two have been inserted (since the 3rd insertion brings the total weight to `11`, i.e. above the maximum of `10`).
-- the callback passed into the initializer is called (synchronously, in the call stack that results from the cache insertion of key `"c"` below).
+Note above the use of `Int.max` as the max count -- here only a weight constraint was given (both item count and total weight can be constrained). Let's add two more items in there:
 
 ```swift
 cache["a"] = WeightedValue<String>(weight: 5, value: "foo")
@@ -40,6 +36,10 @@ cache["b"] = WeightedValue<String>(weight: 5, value: "bar")
 // and the callback passed to the cache initializer is called for the first inserted value.
 cache["c"] = WeightedValue<String>(weight: 1, value: "baz")
 ```
+
+A cache created as above behaves such that...
+- the first inserted value (with key `"a"`) will be dropped after the next two have been inserted (since the 3rd insertion brings the total weight to `11`, i.e. above the maximum of `10`).
+- the callback passed into the initializer is called (synchronously, in the call stack that results from the cache insertion of key `"c"` below).
 
 Beside a subscript based interface for key-based access, `keys` and `values` arrays available on `WeightedLRUCache` to return values in the order in which they were accessed by their key.
 Given the example above, `keys` for example returns the array `["c", "b", "a"]`.
