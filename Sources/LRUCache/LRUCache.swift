@@ -31,7 +31,7 @@ private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequen
         self.prev = node
         return node
     }
-    
+
     func pop() -> (popped: LRUNode<K, V>, prev: LRUNode<K, V>?) {
         defer {
             self.prev?.next = nil
@@ -73,6 +73,9 @@ private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequen
 
 struct LRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
     public let maxCount: Int
+    public let maxWeight: UInt
+    private(set) public var totalWeight: UInt = 0
+
     public var count: Int {
         return self.map.count
     }
@@ -91,9 +94,10 @@ struct LRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
     private var listHead: LRUNode<K, V>?
     private var listTail: LRUNode<K, V>?
 
-    init(maxCount: Int) {
+    init(maxCount: Int, maxWeight: UInt = 0) {
         precondition(maxCount > 1, "Expecting maxCount > 1")
         self.maxCount = maxCount
+        self.maxWeight = maxWeight
     }
 
     subscript(key: K) -> V? {
@@ -134,6 +138,18 @@ struct LRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
     }
     
     mutating private func referToSet(value newValue: V, forKey key: K) {
+        defer {
+            totalWeight += newValue.weight
+            if maxWeight > 0 { // if max weight constraint is set, drop values until max weight constraint is met.
+                while totalWeight > maxWeight, let listTail = self.listTail {
+                    let (popped, prev) = listTail.pop()
+                    self.listTail = prev
+                    map[popped.key] = nil
+                    precondition(popped.value.weight >= 0, "Expecting a non-negative value weight")
+                    totalWeight -= popped.value.weight
+                }
+            }
+        }
         if let foundNode = map[key] {
             // if the found node is already the head, mutate its value and return it.
             if let listHead = listHead, listHead.key == key {

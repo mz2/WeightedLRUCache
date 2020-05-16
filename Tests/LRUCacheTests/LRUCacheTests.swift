@@ -1,6 +1,12 @@
 import XCTest
 @testable import LRUCache
 
+extension Int: Weighted {
+    public var weight: UInt {
+        return UInt(self)
+    }
+}
+
 final class LRUCacheTests: XCTestCase {
     func testInitialization() {
         // This is an example of a functional test case.

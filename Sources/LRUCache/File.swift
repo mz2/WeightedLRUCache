@@ -8,11 +8,10 @@
 import Foundation
 
 protocol Weighted {
-    var weight: Int { get }
+    var weight: UInt { get }
 }
 
-extension Int: Weighted {
-    var weight: Int {
-        return self
-    }
+struct WeightedValue<T>: Weighted {
+    let weight: UInt
+    let value: T
 }
