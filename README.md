@@ -1,5 +1,5 @@
 
-# WeightedWeightedLRUCache [![Swift Package Manager compatible](https://img.shields.io/badge/Swift%20Package%20Manager-compatible-brightgreen.svg)](https://github.com/apple/swift-package-manager) |
+# WeightedWeightedLRUCache [![Swift Package Manager compatible](https://img.shields.io/badge/Swift%20Package%20Manager-compatible-brightgreen.svg)](https://github.com/apple/swift-package-manager) | ![Build Status](https://travis-ci.com/mz2/WeightedLRUCache.svg?branch=master)
 An LRU cache in Swift, with optional support for weighted values such that values are evicted from the tail until a total weight parameter is satisfied.
 
 ## Installation
@@ -43,3 +43,5 @@ cache["c"] = WeightedValue<String>(weight: 1, value: "baz")
 
 Beside a subscript based interface for key-based access, `keys` and `values` arrays available on `WeightedLRUCache` to return values in the order in which they were accessed by their key.
 Given the example above, `keys` for example returns the array `["c", "b", "a"]`.
+
+For more usage examples, see the project's test suite.

@@ -1,0 +1,17 @@
+language: swift
+os: osx
+
+stages:
+  - name: test
+
+branches:
+  only:
+  - master
+
+jobs:
+  include:
+    - stage: test
+      name: "Unit Tests"
+      osx_image: xcode11.4
+      script:
+        - swift test
