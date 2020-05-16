@@ -6,7 +6,9 @@ An LRU cache in Swift, with optional support for weighted values such that value
 
 Add WeightedLRUCache to your Swift package by adding the following to your Package.swift file in the dependencies array:
 
+```swift
 .package(url: "https://github.com/mz2/WeightedLRUCache.git", from: "<version>")
+```
 
 If you are using Xcode 11 or newer, you can add CLIKit by entering the URL to the repository via the File menu:
 
