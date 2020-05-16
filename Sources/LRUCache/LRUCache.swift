@@ -71,6 +71,7 @@ private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequen
     }
 }
 
+
 struct LRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
     public let maxCount: Int
     public let maxWeight: UInt
@@ -89,15 +90,19 @@ struct LRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
             $0.key
         } ?? []
     }
+
+    typealias CacheEvictionCallback = (_ key: K, _ value: V) -> Void
     
     private var map: Dictionary<K, LRUNode<K, V>> = [:]
     private var listHead: LRUNode<K, V>?
     private var listTail: LRUNode<K, V>?
+    private let didEvict: CacheEvictionCallback?
 
-    init(maxCount: Int, maxWeight: UInt = 0) {
+    init(maxCount: Int, maxWeight: UInt = 0, evictionCallback: CacheEvictionCallback? = nil) {
         precondition(maxCount > 1, "Expecting maxCount > 1")
         self.maxCount = maxCount
         self.maxWeight = maxWeight
+        self.didEvict = evictionCallback
     }
 
     subscript(key: K) -> V? {
