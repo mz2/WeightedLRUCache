@@ -19,11 +19,27 @@ File > Swift Packages > Add Package Dependency...
 Values inserted into a `WeightedLRUCache<Key, Value>` must conform to the protocol `Weighted` (which simply requires a readonly property `weight: UInt` on the conforming type).
 An example implementation `WeightedValue` is provided with the library.
 
+To create a cache with no constrained item count, and a max weight constraint of `10`, do the following:
 ```swift
 var cache = WeightedLRUCache<String, WeightedValue<String>>(maxCount: .max, maxWeight: 10) { key, value in
    print("Dropped \(key) : \(value)")
 }
-cache["a"] = WeightedValue<String>(weight: 5, value: "foo") // this will be dropped after the next two have been .
-cache["b"] = WeightedValue<String>(weight: 5, value: "bar")
-cache["c"] = WeightedValue<String>(weight: 1, value: "baz") // upon this being inserted, value with key "a" above is dropped.
 ```
+
+Note above the use of `Int.max` as the max count -- here only a weight constraint was given (both item count and total weight can be constrained).
+
+A cache created as above behaves such that...
+- the first inserted value (with key `"a"`) will be dropped after the next two have been inserted (since the 3rd insertion brings the total weight to `11`, i.e. above the maximum of `10`).
+- the callback passed into the initializer is called (synchronously, in the call stack that results from the cache insertion of key `"c"` below).
+
+```swift
+cache["a"] = WeightedValue<String>(weight: 5, value: "foo")
+cache["b"] = WeightedValue<String>(weight: 5, value: "bar")
+
+// Upon this being inserted, value with key "a" above is dropped,
+// and the callback passed to the cache initializer is called for the first inserted value.
+cache["c"] = WeightedValue<String>(weight: 1, value: "baz")
+```
+
+Beside a subscript based interface for key-based access, `keys` and `values` arrays available on `WeightedLRUCache` to return values in the order in which they were accessed by their key.
+Given the example above, `keys` for example returns the array `["c", "b", "a"]`.
