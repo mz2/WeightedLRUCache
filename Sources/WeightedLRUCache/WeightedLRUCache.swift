@@ -110,7 +110,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
     private var listTail: LRUNode<K, V>?
     private let didEvict: CacheEvictionCallback?
 
-    init(maxCount: Int, maxWeight: UInt = 0, keyValuePairs pairs: [Pair] = [], evictionCallback: CacheEvictionCallback? = nil) {
+    public init(maxCount: Int, maxWeight: UInt = 0, keyValuePairs pairs: [Pair] = [], evictionCallback: CacheEvictionCallback? = nil) {
         precondition(maxCount > 1, "Expecting maxCount > 1")
         self.maxCount = maxCount
         self.maxWeight = maxWeight
