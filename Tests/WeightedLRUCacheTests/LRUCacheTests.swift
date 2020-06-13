@@ -3,7 +3,7 @@ import XCTest
 
 extension Int: Weighted {
     public var weight: UInt {
-        return UInt(self)
+        UInt(self)
     }
 }
 

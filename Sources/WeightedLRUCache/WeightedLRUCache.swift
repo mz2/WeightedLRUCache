@@ -41,11 +41,11 @@ private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequen
     }
 
     var description: String {
-        return "<LRUNode<\(K.Type.self), \(V.Type.self), key: \(key), value: \(value)>"
+        "<LRUNode<\(K.Type.self), \(V.Type.self), key: \(key), value: \(value)>"
     }
 
     func makeIterator() -> LRUNodeIterator {
-        return LRUNodeIterator(self)
+        LRUNodeIterator(self)
     }
 
     struct LRUNodeIterator: IteratorProtocol {
@@ -63,7 +63,7 @@ private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequen
     }
 
     static func == (lhs: LRUNode<K, V>, rhs: LRUNode<K, V>) -> Bool {
-        return lhs.key == rhs.key
+        lhs.key == rhs.key
     }
 
     func hash(into hasher: inout Hasher) {
@@ -82,23 +82,23 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
     public private(set) var totalWeight: UInt = 0
 
     public var count: Int {
-        return map.count
+        map.count
     }
 
     public var values: [V] {
-        return listHead?.compactMap {
+        listHead?.compactMap {
             $0.value
         } ?? []
     }
 
     public var keys: [K] {
-        return listHead?.compactMap {
+        listHead?.compactMap {
             $0.key
         } ?? []
     }
 
     public var keyValuePairs: [Pair] {
-        return listHead?.map {
+        listHead?.map {
             Pair(key: $0.key, value: $0.value)
         } ?? []
     }
