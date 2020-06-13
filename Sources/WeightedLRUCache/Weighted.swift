@@ -11,7 +11,7 @@ public protocol Weighted {
     var weight: UInt { get }
 }
 
-struct WeightedValue<T>: Weighted {
-    let weight: UInt
-    let value: T
+public struct WeightedValue<T>: Weighted {
+    public let weight: UInt
+    public let value: T
 }

@@ -118,15 +118,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
         fill(with: pairs)
     }
 
-    private mutating func fill(with keyValuePairs: [Pair]) {
-        precondition(count == 0, "Expecting empty cache when filling.")
-        precondition(keyValuePairs.count <= maxCount, "Expecting keyValuePairs.count <= maxCount, got \(keyValuePairs.count) vs \(maxCount)")
-        keyValuePairs.forEach {
-            self[$0.key] = $0.value
-        }
-    }
-
-    subscript(key: K) -> V? {
+    public subscript(key: K) -> V? {
         mutating get {
             self.referToGet(key: key)
         }
@@ -156,6 +148,14 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
         }
         map[newHead.key] = newHead
         return newHead
+    }
+
+    private mutating func fill(with keyValuePairs: [Pair]) {
+        precondition(count == 0, "Expecting empty cache when filling.")
+        precondition(keyValuePairs.count <= maxCount, "Expecting keyValuePairs.count <= maxCount, got \(keyValuePairs.count) vs \(maxCount)")
+        keyValuePairs.forEach {
+            self[$0.key] = $0.value
+        }
     }
 
     private enum ReferenceIntent {
