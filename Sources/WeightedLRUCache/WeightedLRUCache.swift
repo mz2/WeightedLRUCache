@@ -9,8 +9,8 @@
 private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequence, Hashable {
     let key: K
     var value: V
-    var next: LRUNode<K, V>? = nil
-    var prev: LRUNode<K, V>? = nil
+    var next: LRUNode<K, V>?
+    var prev: LRUNode<K, V>?
 
     init(key: K, value: V) {
         self.key = key
@@ -18,17 +18,17 @@ private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequen
     }
 
     func drop() {
-        self.prev?.next = self.next
-        self.next?.prev = self.prev
-        self.prev = nil
-        self.next = nil
+        prev?.next = next
+        next?.prev = prev
+        prev = nil
+        next = nil
     }
 
     func pushInFront(node: LRUNode<K, V>) -> LRUNode<K, V> {
         assert(node.next == nil)
-        assert(self.prev == nil)
+        assert(prev == nil)
         node.next = self
-        self.prev = node
+        prev = node
         return node
     }
 
@@ -37,24 +37,24 @@ private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequen
             self.prev?.next = nil
             self.next = nil
         }
-        return (popped: self, prev: self.prev)
+        return (popped: self, prev: prev)
     }
 
     var description: String {
-        return "<LRUNode<\(K.Type.self), \(V.Type.self), key: \(self.key), value: \(self.value)>"
+        return "<LRUNode<\(K.Type.self), \(V.Type.self), key: \(key), value: \(value)>"
     }
-    
+
     func makeIterator() -> LRUNodeIterator {
         return LRUNodeIterator(self)
     }
-    
+
     struct LRUNodeIterator: IteratorProtocol {
         var current: LRUNode<K, V>?
-        
+
         init(_ node: LRUNode<K, V>) {
-            self.current = node
+            current = node
         }
-        
+
         mutating func next() -> LRUNode<K, V>? {
             guard let currentlyCurrent = current else { return nil }
             current = currentlyCurrent.next
@@ -67,47 +67,68 @@ private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequen
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(self.key)
+        hasher.combine(key)
     }
 }
 
+public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
+    public struct Pair {
+        let key: K
+        let value: V
+    }
 
-struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
     public let maxCount: Int
     public let maxWeight: UInt
-    private(set) public var totalWeight: UInt = 0
+    public private(set) var totalWeight: UInt = 0
 
     public var count: Int {
-        return self.map.count
+        return map.count
     }
+
     public var values: [V] {
-        return self.listHead?.compactMap {
+        return listHead?.compactMap {
             $0.value
         } ?? []
     }
+
     public var keys: [K] {
-        return self.listHead?.compactMap {
+        return listHead?.compactMap {
             $0.key
         } ?? []
     }
 
+    public var keyValuePairs: [Pair] {
+        return listHead?.map {
+            Pair(key: $0.key, value: $0.value)
+        } ?? []
+    }
+
     public typealias CacheEvictionCallback = (_ key: K, _ value: V) -> Void
-    
-    private var map: Dictionary<K, LRUNode<K, V>> = [:]
+
+    private var map: [K: LRUNode<K, V>] = [:]
     private var listHead: LRUNode<K, V>?
     private var listTail: LRUNode<K, V>?
     private let didEvict: CacheEvictionCallback?
 
-    init(maxCount: Int, maxWeight: UInt = 0, evictionCallback: CacheEvictionCallback? = nil) {
+    init(maxCount: Int, maxWeight: UInt = 0, keyValuePairs pairs: [Pair] = [], evictionCallback: CacheEvictionCallback? = nil) {
         precondition(maxCount > 1, "Expecting maxCount > 1")
         self.maxCount = maxCount
         self.maxWeight = maxWeight
-        self.didEvict = evictionCallback
+        didEvict = evictionCallback
+        fill(with: pairs)
+    }
+
+    private mutating func fill(with keyValuePairs: [Pair]) {
+        precondition(count == 0, "Expecting empty cache when filling.")
+        precondition(keyValuePairs.count <= maxCount, "Expecting keyValuePairs.count <= maxCount, got \(keyValuePairs.count) vs \(maxCount)")
+        keyValuePairs.forEach {
+            self[$0.key] = $0.value
+        }
     }
 
     subscript(key: K) -> V? {
         mutating get {
-            return self.referToGet(key: key)
+            self.referToGet(key: key)
         }
         set(newValue) {
             if let newValue = newValue {
@@ -118,20 +139,20 @@ struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
         }
     }
 
-    var description: String {
-        self.listHead?.compactMap({
+    public var description: String {
+        listHead?.compactMap {
             $0.description
-        }).joined(separator: "->") ?? "<WeightedLRUCache<K:\(K.Type.self), V:\(V.Type.self)>"
+        }.joined(separator: "->") ?? "<WeightedLRUCache<K:\(K.Type.self), V:\(V.Type.self)>"
     }
-    
-    mutating private func prependHead(_ newHead: LRUNode<K, V>) -> LRUNode<K, V> {
+
+    private mutating func prependHead(_ newHead: LRUNode<K, V>) -> LRUNode<K, V> {
         if let listHead = self.listHead {
             self.listHead = listHead.pushInFront(node: newHead)
-            if self.listTail == nil {
-                self.listTail = listHead // if no tail was set, new tail is the old head.
+            if listTail == nil {
+                listTail = listHead // if no tail was set, new tail is the old head.
             }
         } else {
-            self.listHead = newHead
+            listHead = newHead
         }
         map[newHead.key] = newHead
         return newHead
@@ -141,7 +162,7 @@ struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
         case setValue
         case getValue
     }
-    
+
     private mutating func dropExcessWeight() {
         while totalWeight > maxWeight, let listTail = self.listTail {
             let (popped, prev) = listTail.pop()
@@ -152,8 +173,8 @@ struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
             didEvict?(popped.key, popped.value)
         }
     }
-    
-    mutating private func referToSet(value newValue: V, forKey key: K) {
+
+    private mutating func referToSet(value newValue: V, forKey key: K) {
         defer {
             totalWeight += newValue.weight
 
@@ -176,7 +197,7 @@ struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
                 // drop current list node for (K, V)
                 foundNode.drop()
                 map[key] = nil // this is reinstated below in setHead
-                
+
                 // insert (K, V) in front of list and replace map reference to (K, V)
                 _ = prependHead(LRUNode(key: key, value: foundNode.value))
                 return
@@ -185,7 +206,7 @@ struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
         // if pre-existing node with key is not found
         // - if cache is full when node is not found, pop tail and update tail reference to be the prev node.
         // - regardless, set a map entry with a reference to the newly created list head.
-    
+
         // cache is full, so pop tail and update tail reference.
         if map.count == maxCount, let popResult = listTail?.pop() {
             listTail = popResult.prev
@@ -194,8 +215,8 @@ struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
         }
         _ = prependHead(LRUNode(key: key, value: newValue))
     }
-    
-    mutating private func referToGet(key: K) -> V? {
+
+    private mutating func referToGet(key: K) -> V? {
         if let foundNode = map[key] {
             // if the found node is already at the head position, return it.
             if let listHead = listHead, listHead.key == key {
@@ -208,7 +229,7 @@ struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
                 // drop current list node for (K, V)
                 foundNode.drop()
                 map[key] = nil // this is reinstated below in setHead
-                
+
                 // insert (K, V) in front of list and replace map reference to (K, V)
                 return prependHead(LRUNode(key: key, value: foundNode.value)).value
             }
@@ -216,3 +237,5 @@ struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
         return nil
     }
 }
+
+extension WeightedLRUCache.Pair: Codable where K: Codable, V: Codable {}
