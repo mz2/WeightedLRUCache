@@ -91,9 +91,10 @@ final class WeightedLRUCacheTests: XCTestCase {
         XCTAssertEqual(cache["d"], 4)
     }
 
-    func testEvictionCallback() {
+    func testEvictionHandler() {
         var evictionCount = 0
-        var cache = WeightedLRUCache<String, Int>(maxCount: 2) { _, _ in
+        var cache = WeightedLRUCache<String, Int>(maxCount: 2)
+        cache.didEvict = { _, _ in
             evictionCount += 1
         }
         cache["a"] = 1
@@ -105,7 +106,8 @@ final class WeightedLRUCacheTests: XCTestCase {
 
     func testDroppingExcessWeight() {
         var evictionCount = 0
-        var cache = WeightedLRUCache<String, Int>(maxCount: .max, maxWeight: 10) { _, _ in
+        var cache = WeightedLRUCache<String, Int>(maxCount: .max, maxWeight: 10)
+        cache.didEvict = { _, _ in
             evictionCount += 1
         }
         cache["a"] = 5 // this will be dropped.
@@ -121,7 +123,8 @@ final class WeightedLRUCacheTests: XCTestCase {
 
     func testWeightedValue() {
         var evictionCount = 0
-        var cache = WeightedLRUCache<String, WeightedValue<String>>(maxCount: .max, maxWeight: 10) { _, _ in
+        var cache = WeightedLRUCache<String, WeightedValue<String>>(maxCount: .max, maxWeight: 10)
+        cache.didEvict = { _, _ in
             evictionCount += 1
         }
         cache["a"] = WeightedValue<String>(weight: 5, value: "foo") // this will be dropped.
@@ -151,7 +154,7 @@ final class WeightedLRUCacheTests: XCTestCase {
         ("testEncodingAndDecoding", testEncodingAndDecoding),
         ("testOrderedEvictionWithMaxCount2A", testOrderedEvictionWithMaxCount2A),
         ("testMaxCountWithMaxCount2B", testMaxCountWithMaxCount2B),
-        ("testEvictionCallback", testEvictionCallback),
+        ("testEvictionHandler", testEvictionHandler),
         ("testDroppingExcessWeight", testDroppingExcessWeight),
     ]
 }

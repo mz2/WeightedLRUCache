@@ -103,18 +103,17 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
         } ?? []
     }
 
-    public typealias CacheEvictionCallback = (_ key: K, _ value: V) -> Void
+    public typealias CacheEvictionHandler = (_ key: K, _ value: V) -> Void
 
     private var map: [K: LRUNode<K, V>] = [:]
     private var listHead: LRUNode<K, V>?
     private var listTail: LRUNode<K, V>?
-    private let didEvict: CacheEvictionCallback?
+    public var didEvict: CacheEvictionHandler? = nil
 
-    public init(maxCount: Int, maxWeight: UInt = 0, keyValuePairs pairs: [Pair] = [], evictionCallback: CacheEvictionCallback? = nil) {
+    public init(maxCount: Int, maxWeight: UInt = 0, keyValuePairs pairs: [Pair] = []) {
         precondition(maxCount > 1, "Expecting maxCount > 1")
         self.maxCount = maxCount
         self.maxWeight = maxWeight
-        didEvict = evictionCallback
         fill(with: pairs)
     }
 

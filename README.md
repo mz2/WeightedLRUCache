@@ -23,7 +23,8 @@ An example implementation `WeightedValue` is provided with the library.
 
 To create a cache with no constrained item count, and a max weight constraint of `10`, do the following:
 ```swift
-var cache = WeightedLRUCache<String, WeightedValue<String>>(maxCount: .max, maxWeight: 10) { key, value in
+var cache = WeightedLRUCache<String, WeightedValue<String>>(maxCount: .max, maxWeight: 10)
+cache.didEvice = { key, value in
    print("Dropped \(key) : \(value)")
 }
 ```
