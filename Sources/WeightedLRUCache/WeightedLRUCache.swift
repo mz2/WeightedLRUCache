@@ -6,6 +6,8 @@
 //  Copyright © 2020 Markus & Matias Piipari. All rights reserved.
 //
 
+import Foundation
+
 private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequence, Hashable {
     let key: K
     var value: V
@@ -103,12 +105,12 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
         } ?? []
     }
 
-    public typealias CacheEvictionHandler = (_ key: K, _ value: V) -> Void
+    public typealias EvictionHandler = (_ key: K, _ value: V) -> Void
 
     private var map: [K: LRUNode<K, V>] = [:]
     private var listHead: LRUNode<K, V>?
     private var listTail: LRUNode<K, V>?
-    public var didEvict: CacheEvictionHandler? = nil
+    public var didEvict: EvictionHandler? = nil
 
     public init(maxCount: Int, maxWeight: UInt = 0, keyValuePairs pairs: [Pair] = []) {
         precondition(maxCount > 1, "Expecting maxCount > 1")
@@ -134,6 +136,36 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
         listHead?.compactMap {
             $0.description
         }.joined(separator: "->") ?? "<WeightedLRUCache<K:\(K.Type.self), V:\(V.Type.self)>"
+    }
+
+    public typealias EvictionAssociatedAction = (_ key: K, _ value: V) -> Bool
+
+    public static func retryingEvictionHandler(attemptCount: UInt,
+                                               maxConcurrency: Int = ProcessInfo.processInfo.activeProcessorCount,
+                                               queue: DispatchQueue = DispatchQueue.global(qos: .default),
+                                               maxDelay: TimeInterval? = nil,
+                                               maxJitter: TimeInterval = 0,
+                                               attempting action: @escaping EvictionAssociatedAction) -> EvictionHandler {
+        return { key, value in
+            let semaphore = DispatchSemaphore(value: maxConcurrency)
+            queue.async {
+                var count = 0
+                while !action(key, value), count < attemptCount {
+                    if let maxDelay = maxDelay, count > 0 {
+                        let d = delay(forAttempt: count, maxDelay: maxDelay, maxJitter: maxJitter)
+                        Thread.sleep(forTimeInterval: d)
+                    }
+                    count += 1
+                    semaphore.signal()
+                }
+            }
+        }
+    }
+
+    private static func delay(forAttempt n: Int, maxDelay: TimeInterval, maxJitter: TimeInterval) -> TimeInterval {
+        let delay = pow(2.0, Double(n))
+        let jitter = Double.random(in: 0...maxJitter)
+        return min(delay + jitter, maxDelay)
     }
 
     private mutating func prependHead(_ newHead: LRUNode<K, V>) -> LRUNode<K, V> {
