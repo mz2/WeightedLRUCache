@@ -148,6 +148,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
                                                attempting action: @escaping EvictionAssociatedAction) -> EvictionHandler {
         return { key, value in
             let semaphore = DispatchSemaphore(value: maxConcurrency)
+            semaphore.wait()
             queue.async {
                 var count = 0
                 while !action(key, value), count < attemptCount {
