@@ -127,7 +127,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
             if let newValue = newValue {
                 self.referToSet(value: newValue, forKey: key)
             } else {
-                preconditionFailure("Implement eviction and then try again.")
+                _ = self.evictValue(forKey: key)
             }
         }
     }
@@ -136,31 +136,6 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
         listHead?.compactMap {
             $0.description
         }.joined(separator: "->") ?? "<WeightedLRUCache<K:\(K.Type.self), V:\(V.Type.self)>"
-    }
-
-    public typealias EvictionAssociatedAction = (_ key: K, _ value: V) -> Bool
-
-    public static func retryingEvictionHandler(attemptCount: UInt,
-                                               maxConcurrency: Int = ProcessInfo.processInfo.activeProcessorCount,
-                                               queue: DispatchQueue = DispatchQueue.global(qos: .default),
-                                               maxDelay: TimeInterval? = nil,
-                                               maxJitter: TimeInterval = 0,
-                                               attempting action: @escaping EvictionAssociatedAction) -> EvictionHandler {
-        return { key, value in
-            let semaphore = DispatchSemaphore(value: maxConcurrency)
-            semaphore.wait()
-            queue.async {
-                var count = 0
-                while !action(key, value), count < attemptCount {
-                    if let maxDelay = maxDelay, count > 0 {
-                        let d = delay(forAttempt: count, maxDelay: maxDelay, maxJitter: maxJitter)
-                        Thread.sleep(forTimeInterval: d)
-                    }
-                    count += 1
-                    semaphore.signal()
-                }
-            }
-        }
     }
 
     private static func delay(forAttempt n: Int, maxDelay: TimeInterval, maxJitter: TimeInterval) -> TimeInterval {
@@ -204,6 +179,17 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
             totalWeight -= popped.value.weight
             didEvict?(popped.key, popped.value)
         }
+    }
+
+    private mutating func evictValue(forKey key: K) -> V? {
+        guard let foundNode = self.map[key] else {
+            return nil
+        }
+        totalWeight -= foundNode.value.weight
+        foundNode.prev?.next = foundNode.next
+        foundNode.next?.prev = foundNode.prev
+
+        return foundNode.value
     }
 
     private mutating func referToSet(value newValue: V, forKey key: K) {

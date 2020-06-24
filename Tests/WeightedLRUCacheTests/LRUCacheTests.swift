@@ -139,6 +139,20 @@ final class WeightedLRUCacheTests: XCTestCase {
         XCTAssertEqual(cache.values.map { $0.value }, ["baz", "bar"])
     }
 
+    func testEviction() {
+        let pairs = [WeightedLRUCache.Pair(key: "a", value: 1),
+                     WeightedLRUCache.Pair(key: "b", value: 2),
+                     WeightedLRUCache.Pair(key: "c", value: 3)]
+
+        var cache = WeightedLRUCache<String, Int>(maxCount: 3, keyValuePairs: pairs)
+        XCTAssertEqual(cache.keys, ["c", "b", "a"])
+        XCTAssertEqual(cache.values, [3, 2, 1])
+
+        cache["b"] = nil
+        XCTAssertEqual(cache.keys, ["c", "a"])
+        XCTAssertEqual(cache.values, [3, 1])
+    }
+
     func testDescription() {
         var cache = WeightedLRUCache<String, Int>(maxCount: .max, maxWeight: 10)
         cache["a"] = 5
@@ -152,6 +166,7 @@ final class WeightedLRUCacheTests: XCTestCase {
         ("testSingleInsertion", testSingleInsertion),
         ("testValueOrdering", testValueOrdering),
         ("testEncodingAndDecoding", testEncodingAndDecoding),
+        ("testEviction", testEviction),
         ("testOrderedEvictionWithMaxCount2A", testOrderedEvictionWithMaxCount2A),
         ("testMaxCountWithMaxCount2B", testMaxCountWithMaxCount2B),
         ("testEvictionHandler", testEvictionHandler),
