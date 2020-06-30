@@ -75,8 +75,8 @@ private class LRUNode<K: Hashable, V: Weighted>: CustomStringConvertible, Sequen
 
 public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertible {
     public struct Pair {
-        let key: K
-        let value: V
+        public let key: K
+        public let value: V
     }
 
     public let maxCount: Int
