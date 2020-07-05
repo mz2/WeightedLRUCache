@@ -55,7 +55,8 @@ final class WeightedLRUCacheTests: XCTestCase {
                      WeightedLRUCache.Pair(key: "b", value: 2),
                      WeightedLRUCache.Pair(key: "c", value: 3)]
 
-        let cache = WeightedLRUCache<String, Int>(maxCount: 3, keyValuePairs: pairs)
+        var cache = WeightedLRUCache<String, Int>(maxCount: 3)
+        pairs.forEach { pair in cache[pair.key] = pair.value }
         XCTAssertEqual(cache.keys, ["c", "b", "a"])
         XCTAssertEqual(cache.values, [3, 2, 1])
 
@@ -64,7 +65,8 @@ final class WeightedLRUCacheTests: XCTestCase {
         let decoder = JSONDecoder()
         let decodedCachePairs = try! decoder.decode([WeightedLRUCache<String, Int>.Pair].self, from: jsonData)
 
-        let cache2 = WeightedLRUCache<String, Int>(maxCount: 3, keyValuePairs: decodedCachePairs.reversed())
+        var cache2 = WeightedLRUCache<String, Int>(maxCount: 3)
+        decodedCachePairs.reversed().forEach { pair in cache2[pair.key] = pair.value }
         XCTAssertEqual(cache2.keys, ["c", "b", "a"])
         XCTAssertEqual(cache2.values, [3, 2, 1])
     }
@@ -144,7 +146,8 @@ final class WeightedLRUCacheTests: XCTestCase {
                      WeightedLRUCache.Pair(key: "b", value: 2),
                      WeightedLRUCache.Pair(key: "c", value: 3)]
 
-        var cache = WeightedLRUCache<String, Int>(maxCount: 3, keyValuePairs: pairs)
+        var cache = WeightedLRUCache<String, Int>(maxCount: 3)
+        pairs.forEach { pair in cache[pair.key] = pair.value }
         XCTAssertEqual(cache.keys, ["c", "b", "a"])
         XCTAssertEqual(cache.values, [3, 2, 1])
 

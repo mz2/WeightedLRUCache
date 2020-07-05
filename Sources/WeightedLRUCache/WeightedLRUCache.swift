@@ -80,7 +80,40 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
     }
 
     public let maxCount: Int
-    public let maxWeight: UInt
+
+    /// `maxWeight` of 0 means not limiting the weight. All positive values above it are treated as a limit.
+    /// Increasing the capacity of a cache does not lead to side effects.
+    /// Decreasing the capacity of a cache causes `didEvict` calls for any items in the cache that no longer fit.
+    public private(set) var maxWeight: UInt {
+        willSet {
+            self.maxWeight = newValue
+
+            if newValue == 0 {
+                // maxWeight = 0 means not limiting the weight.
+                // Nothing to do when capacity is not to be limited.
+                return
+            }
+
+            guard newValue > self.maxWeight else {
+                return // Nothing to do when capacity is increasing.
+            }
+                
+            var accummulatedWeight: UInt = 0
+            var node = self.listHead
+            while let currentNode = node {
+                let candidateAccumWeight = accummulatedWeight + currentNode.value.weight
+                if candidateAccumWeight > self.maxWeight {
+                    // Can't add more. Let's evict all nodes after this.
+                    self.evict(from: currentNode)
+                    break
+                }
+                node = node?.next
+                accummulatedWeight = candidateAccumWeight
+            }
+            precondition(self.totalWeight < newValue)
+        }
+    }
+
     public private(set) var totalWeight: UInt = 0
 
     public var count: Int {
@@ -112,11 +145,10 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
     private var listTail: LRUNode<K, V>?
     public var didEvict: EvictionHandler? = nil
 
-    public init(maxCount: Int, maxWeight: UInt = 0, keyValuePairs pairs: [Pair] = []) {
+    public init(maxCount: Int, maxWeight: UInt = 0) {
         precondition(maxCount > 1, "Expecting maxCount > 1")
         self.maxCount = maxCount
         self.maxWeight = maxWeight
-        fill(with: pairs)
     }
 
     public subscript(key: K) -> V? {
@@ -157,14 +189,6 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
         return newHead
     }
 
-    private mutating func fill(with keyValuePairs: [Pair]) {
-        precondition(count == 0, "Expecting empty cache when filling.")
-        precondition(keyValuePairs.count <= maxCount, "Expecting keyValuePairs.count <= maxCount, got \(keyValuePairs.count) vs \(maxCount)")
-        keyValuePairs.forEach {
-            self[$0.key] = $0.value
-        }
-    }
-
     private enum ReferenceIntent {
         case setValue
         case getValue
@@ -189,7 +213,20 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
         foundNode.prev?.next = foundNode.next
         foundNode.next?.prev = foundNode.prev
 
+        self.map[key] = nil
+
+        foundNode.next = nil
+        foundNode.prev = nil
+
         return foundNode.value
+    }
+
+    private mutating func evict(from node: LRUNode<K, V>) {
+        var evictedNode: LRUNode<K, V>? = node
+        while let currentEvictedNode = evictedNode {
+            evictedNode = currentEvictedNode.next
+            _ = self.evictValue(forKey: currentEvictedNode.key)
+        }
     }
 
     private mutating func referToSet(value newValue: V, forKey key: K) {
