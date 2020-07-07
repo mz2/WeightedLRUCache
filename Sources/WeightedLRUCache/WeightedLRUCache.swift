@@ -84,7 +84,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
     /// `maxWeight` of 0 means not limiting the weight. All positive values above it are treated as a limit.
     /// Increasing the capacity of a cache does not lead to side effects.
     /// Decreasing the capacity of a cache causes `didEvict` calls for any items in the cache that no longer fit.
-    public private(set) var maxWeight: UInt {
+    public var maxWeight: UInt {
         willSet {
             self.maxWeight = newValue
 
