@@ -307,6 +307,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
         precondition(mapCount == listNodeCount)
         precondition(totalWeight == listNodeTotalWeight)
         precondition(Set(self.map.values) == nodeSet)
+        precondition(Set(self.map.keys) == Set(nodeSet.map { $0.key } ))
     }
 }
 
