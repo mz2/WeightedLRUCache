@@ -288,6 +288,26 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
         }
         return nil
     }
+
+    /// TODO: Remove this method from public interface, call it in debug builds of the package as part of all mutating operations.
+    public func verify() {
+        let mapCount = self.map.count
+        
+        var listNodeCount = 0
+        var listNodeTotalWeight: UInt = 0
+        var node = self.listHead
+        var nodeSet:Set<LRUNode<K,V>> = Set()
+        while node?.next != nil {
+            listNodeCount += 1
+            listNodeTotalWeight = node?.value.weight ?? 0
+            nodeSet.insert(node!)
+            node = node?.next
+        }
+
+        precondition(mapCount == listNodeCount)
+        precondition(totalWeight == listNodeTotalWeight)
+        precondition(Set(self.map.values) == nodeSet)
+    }
 }
 
 extension WeightedLRUCache.Pair: Codable where K: Codable, V: Codable {}
