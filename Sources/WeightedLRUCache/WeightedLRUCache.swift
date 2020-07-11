@@ -85,32 +85,29 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
     /// Increasing the capacity of a cache does not lead to side effects.
     /// Decreasing the capacity of a cache causes `didEvict` calls for any items in the cache that no longer fit.
     public var maxWeight: UInt {
-        willSet {
-            self.maxWeight = newValue
-
-            if newValue == 0 {
-                // maxWeight = 0 means not limiting the weight.
-                // Nothing to do when capacity is not to be limited.
+        didSet {
+            // Nothing to do when…
+            // - maxWeight = 0
+            // - capacity is increasing
+            guard self.maxWeight == 0 || oldValue <= self.maxWeight else {
                 return
-            }
-
-            guard newValue > self.maxWeight else {
-                return // Nothing to do when capacity is increasing.
             }
                 
             var accummulatedWeight: UInt = 0
             var node = self.listHead
             while let currentNode = node {
                 let candidateAccumWeight = accummulatedWeight + currentNode.value.weight
+
+                // Can't add more. Let's evict all nodes after this.
                 if candidateAccumWeight > self.maxWeight {
-                    // Can't add more. Let's evict all nodes after this.
                     self.evict(from: currentNode)
                     break
                 }
+
                 node = node?.next
                 accummulatedWeight = candidateAccumWeight
             }
-            precondition(self.totalWeight < newValue)
+            precondition(self.totalWeight <= self.maxWeight)
         }
     }
 
