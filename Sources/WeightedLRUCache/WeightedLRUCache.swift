@@ -89,7 +89,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
             // Nothing to do when…
             // - maxWeight = 0
             // - capacity is increasing
-            guard self.maxWeight == 0 || oldValue <= self.maxWeight else {
+            guard self.maxWeight > 0 && oldValue >= self.maxWeight else {
                 return
             }
                 
