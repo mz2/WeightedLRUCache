@@ -93,20 +93,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
                 return
             }
                 
-            var accummulatedWeight: UInt = 0
-            var node = self.listHead
-            while let currentNode = node {
-                let candidateAccumWeight = accummulatedWeight + currentNode.value.weight
-
-                // Can't add more. Let's evict all nodes after this.
-                if candidateAccumWeight > self.maxWeight {
-                    self.evict(from: currentNode)
-                    break
-                }
-
-                node = node?.next
-                accummulatedWeight = candidateAccumWeight
-            }
+            dropExcessWeight()
             precondition(self.totalWeight <= self.maxWeight)
         }
     }
@@ -183,6 +170,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
             listHead = newHead
         }
         map[newHead.key] = newHead
+        totalWeight += newHead.value.weight
         return newHead
     }
 
@@ -196,21 +184,25 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
             let (popped, prev) = listTail.pop()
             self.listTail = prev
             map[popped.key] = nil
-            precondition(popped.value.weight >= 0, "Expecting a non-negative value weight")
             totalWeight -= popped.value.weight
+
+            precondition(popped.value.weight >= 0, "Expecting a non-negative value weight")
             didEvict?(popped.key, popped.value)
         }
     }
 
-    private mutating func evictValue(forKey key: K) -> V? {
+    public mutating func evictValue(forKey key: K) -> V? {
+        #if DEBUG
+        defer { verify() }
+        #endif
+
         guard let foundNode = self.map[key] else {
             return nil
         }
-        totalWeight -= foundNode.value.weight
         foundNode.prev?.next = foundNode.next
         foundNode.next?.prev = foundNode.prev
-
         self.map[key] = nil
+        totalWeight -= foundNode.value.weight
 
         foundNode.next = nil
         foundNode.prev = nil
@@ -228,18 +220,22 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
 
     private mutating func referToSet(value newValue: V, forKey key: K) {
         defer {
-            totalWeight += newValue.weight
-
             // if max weight constraint is set,
             // drop values until max weight constraint is met.
             if maxWeight > 0 {
                 dropExcessWeight()
             }
+
+            #if DEBUG
+            verify()
+            #endif
         }
         if let foundNode = map[key] {
             // if the found node is already the head, mutate its value and return it.
             if let listHead = listHead, listHead.key == key {
+                totalWeight -= listHead.value.weight
                 listHead.value = newValue
+                totalWeight += listHead.value.weight
                 return
             }
             // if node is found from a non-head position:
@@ -249,6 +245,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
                 // drop current list node for (K, V)
                 foundNode.drop()
                 map[key] = nil // this is reinstated below in setHead
+                totalWeight -= foundNode.value.weight
 
                 // insert (K, V) in front of list and replace map reference to (K, V)
                 _ = prependHead(LRUNode(key: key, value: foundNode.value))
@@ -263,12 +260,17 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
         if map.count == maxCount, let popResult = listTail?.pop() {
             listTail = popResult.prev
             map[popResult.popped.key] = nil
+            totalWeight -= popResult.popped.value.weight
+
             didEvict?(popResult.popped.key, popResult.popped.value)
         }
         _ = prependHead(LRUNode(key: key, value: newValue))
     }
 
     private mutating func referToGet(key: K) -> V? {
+        #if DEBUG
+        defer { verify() }
+        #endif
         if let foundNode = map[key] {
             // if the found node is already at the head position, return it.
             if let listHead = listHead, listHead.key == key {
@@ -281,6 +283,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
                 // drop current list node for (K, V)
                 foundNode.drop()
                 map[key] = nil // this is reinstated below in setHead
+                totalWeight -= foundNode.value.weight
 
                 // insert (K, V) in front of list and replace map reference to (K, V)
                 return prependHead(LRUNode(key: key, value: foundNode.value)).value
@@ -297,17 +300,17 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
         var listNodeTotalWeight: UInt = 0
         var node = self.listHead
         var nodeSet:Set<LRUNode<K,V>> = Set()
-        while node?.next != nil {
+        while node != nil {
             listNodeCount += 1
-            listNodeTotalWeight = node?.value.weight ?? 0
+            listNodeTotalWeight += node?.value.weight ?? 0
             nodeSet.insert(node!)
             node = node?.next
         }
 
         precondition(mapCount == listNodeCount)
-        precondition(totalWeight == listNodeTotalWeight)
         precondition(Set(self.map.values) == nodeSet)
         precondition(Set(self.map.keys) == Set(nodeSet.map { $0.key } ))
+        precondition(totalWeight == listNodeTotalWeight, "Expecting totalWeight \(listNodeTotalWeight), got \(totalWeight) from \(nodeSet.count) values")
     }
 }
 

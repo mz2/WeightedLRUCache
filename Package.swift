@@ -21,7 +21,10 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
             name: "WeightedLRUCache",
-            dependencies: []
+            dependencies: [],
+            swiftSettings: [
+                .define("DEBUG", .when(platforms: [.iOS, .macOS, .tvOS, .watchOS], configuration: .debug))
+            ]
         ),
         .testTarget(
             name: "WeightedLRUCacheTests",
