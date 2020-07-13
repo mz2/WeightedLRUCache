@@ -192,7 +192,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
     }
 
     public mutating func evictValue(forKey key: K) -> V? {
-        #if DEBUG
+        #if PARANOID
         defer { verify() }
         #endif
 
@@ -226,7 +226,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
                 dropExcessWeight()
             }
 
-            #if DEBUG
+            #if PARANOID
             verify()
             #endif
         }
@@ -268,7 +268,7 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
     }
 
     private mutating func referToGet(key: K) -> V? {
-        #if DEBUG
+        #if PARANOID
         defer { verify() }
         #endif
         if let foundNode = map[key] {
@@ -292,26 +292,42 @@ public struct WeightedLRUCache<K: Hashable, V: Weighted>: CustomStringConvertibl
         return nil
     }
 
-    /// TODO: Remove this method from public interface, call it in debug builds of the package as part of all mutating operations.
+    #if PARANOID
     public func verify() {
         let mapCount = self.map.count
         
         var listNodeCount = 0
         var listNodeTotalWeight: UInt = 0
         var node = self.listHead
+        precondition(listHead?.prev == nil)
+        precondition(mapCount < 2 || listHead?.next != nil)
+        
+        var actualTail: LRUNode<K, V>? = nil
         var nodeSet:Set<LRUNode<K,V>> = Set()
         while node != nil {
             listNodeCount += 1
             listNodeTotalWeight += node?.value.weight ?? 0
             nodeSet.insert(node!)
-            node = node?.next
+            
+            if let next = node?.next {
+                node = next
+                actualTail = node
+            }
+            else {
+                node = nil
+            }
         }
+        if let listTail = listTail {
+            precondition(listTail == actualTail!, "Expecting \(String(describing: actualTail)) as list tail, got \(String(describing: actualTail))")
+        }
+        precondition(mapCount < 2 || listTail?.prev != nil)
 
         precondition(mapCount == listNodeCount)
         precondition(Set(self.map.values) == nodeSet)
         precondition(Set(self.map.keys) == Set(nodeSet.map { $0.key } ))
         precondition(totalWeight == listNodeTotalWeight, "Expecting totalWeight \(listNodeTotalWeight), got \(totalWeight) from \(nodeSet.count) values")
     }
+    #endif
 }
 
 extension WeightedLRUCache.Pair: Codable where K: Codable, V: Codable {}
