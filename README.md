@@ -10,7 +10,7 @@ Add WeightedLRUCache to your Swift package as a dependency by adding the followi
 .package(url: "https://github.com/mz2/WeightedLRUCache.git", from: "<version>")
 ```
 
-If you are using Xcode 11 or newer, you can add CLIKit by entering the URL to the repository via the File menu:
+If you are using Xcode 11 or newer, you can add WeightedLRUCache by entering the URL to the repository via the File menu:
 
 ```
 File > Swift Packages > Add Package Dependency...
