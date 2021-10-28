@@ -1,5 +1,5 @@
 
-# WeightedLRUCache [![Swift Package Manager compatible](https://img.shields.io/badge/Swift%20Package%20Manager-compatible-brightgreen.svg)](https://github.com/apple/swift-package-manager)  ![Build Status](https://travis-ci.com/mz2/WeightedLRUCache.svg?branch=master) ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+# WeightedLRUCache [![Swift Package Manager compatible](https://img.shields.io/badge/Swift%20Package%20Manager-compatible-brightgreen.svg)](https://github.com/apple/swift-package-manager)  [![Build](https://github.com/mz2/WeightedLRUCache/actions/workflows/build.yml/badge.svg)](https://github.com/mz2/WeightedLRUCache/actions/workflows/build.yml) ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 An LRU cache in Swift, with optional support for weighted values such that values are evicted from the tail until a total weight parameter is satisfied.
 
 ## Installation
